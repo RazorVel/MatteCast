@@ -1,0 +1,5 @@
+# Linux x86_64 wheels only. Hashes are the PyPI-published SHA-256 values.
+PySide6-Essentials==6.6.3.1 \
+    --hash=sha256:1f41f357ce2384576581e76c9c3df1c4fa5b38e347f0bcd0cae7c5bce42a917c
+shiboken6==6.6.3.1 \
+    --hash=sha256:b1aeff0d79d84ddbdc9970144c1bbc3a52fcb45618d1b33d17d57f99f1246d45

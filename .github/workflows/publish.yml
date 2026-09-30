@@ -1,0 +1,26 @@
+name: Create Source Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Create GitHub source release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1 && exit 0
+
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "${GITHUB_REF_NAME}" \
+            --notes $'Source release.\n\nMatteCast intentionally does not publish or automatically use a mutable `latest` container image. Build locally, or publish and pin a separately verified image by immutable digest.'

@@ -1,0 +1,14 @@
+name: Remote Image Signing (manual policy note)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  explanation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Explain hardened release policy
+        run: |
+          echo 'This repository does not automatically publish remote images.'
+          echo 'After hardware validation, publish a versioned image, resolve its digest,'
+          echo 'and sign the immutable image@sha256:... reference in a dedicated release workflow.'

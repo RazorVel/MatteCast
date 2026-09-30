@@ -1,0 +1,43 @@
+# MatteCast - Git Ignore
+
+# My helper scripts
+scripts/release-build-push.sh
+scripts/release-tag.sh
+
+# Downloaded model weights
+# models/*.onnx
+
+# Build outputs
+app/build/
+output/
+release/
+
+# Archives
+*.tar.gz
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+*.tmp
+*.temp

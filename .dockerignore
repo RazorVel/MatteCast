@@ -1,0 +1,9 @@
+# Keep the container build context limited to files actually consumed by Containerfile.
+**
+!Containerfile
+!app/
+!app/**
+!assets/
+!assets/**
+!models/
+!models/rvm_mobilenetv3_fp32.onnx
