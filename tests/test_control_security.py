@@ -32,15 +32,12 @@ core.Signal = Dummy
 gui = types.ModuleType("PySide6.QtGui")
 for name in ["QColor", "QPalette", "QIcon", "QPixmap", "QPainter", "QAction", "QImage", "QFont"]:
     setattr(gui, name, Dummy)
-svg = types.ModuleType("PySide6.QtSvg")
-svg.QSvgRenderer = Dummy
 pkg = types.ModuleType("PySide6")
 sys.modules.update({
     "PySide6": pkg,
     "PySide6.QtWidgets": widgets,
     "PySide6.QtCore": core,
     "PySide6.QtGui": gui,
-    "PySide6.QtSvg": svg,
 })
 
 spec = importlib.util.spec_from_file_location("mattecast_control", ROOT / "app/control_panel.py")

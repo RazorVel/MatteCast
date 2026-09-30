@@ -12,6 +12,9 @@ for p in ROOT.rglob("*"):
 
 assert not any(p.is_dir() and p.name == "__pycache__" for p in ROOT.rglob("__pycache__")), "__pycache__ directory in source tree"
 
+logo = (ROOT / "assets/logo.png").read_bytes()
+assert logo.startswith(b"\x89PNG\r\n\x1a\n"), "assets/logo.png is not a valid PNG file"
+
 # Documentation must describe the RVM/ORT tree, not the removed SDK workflow.
 doc_text = "\n".join(
     (ROOT / name).read_text()

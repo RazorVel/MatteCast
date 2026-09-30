@@ -20,7 +20,6 @@ from PySide6.QtCore import Qt, QTimer, Signal
 from PySide6.QtGui import (
     QColor, QPalette, QIcon, QPixmap, QPainter, QAction, QImage, QFont,
 )
-from PySide6.QtSvg import QSvgRenderer
 
 os.umask(0o077)
 
@@ -406,6 +405,7 @@ class EffectButton(QPushButton):
 class ControlPanel(QMainWindow):
     def __init__(self):
         super().__init__()
+        self._quitting = False
         self.settings = Settings()
         self.setWindowTitle("MatteCast")
         self.setMinimumSize(540, 800)
@@ -468,22 +468,21 @@ class ControlPanel(QMainWindow):
 
     # ── System tray ──────────────────────────────────────────────────────
     def _make_tray_icon(self) -> QIcon:
+        if Path(LOGO_PATH).exists():
+            icon = QIcon(LOGO_PATH)
+            if not icon.isNull():
+                return icon
+
         px = QPixmap(64, 64)
         px.fill(Qt.transparent)
-        if Path(LOGO_PATH).exists():
-            renderer = QSvgRenderer(LOGO_PATH)
-            painter = QPainter(px)
-            renderer.render(painter)
-            painter.end()
-        else:
-            painter = QPainter(px)
-            painter.setRenderHint(QPainter.Antialiasing)
-            painter.setBrush(QColor(59, 130, 246))
-            painter.setPen(Qt.NoPen)
-            painter.drawEllipse(4, 4, 56, 56)
-            painter.setBrush(QColor(255, 255, 255))
-            painter.drawEllipse(20, 20, 24, 24)
-            painter.end()
+        painter = QPainter(px)
+        painter.setRenderHint(QPainter.Antialiasing)
+        painter.setBrush(QColor(59, 130, 246))
+        painter.setPen(Qt.NoPen)
+        painter.drawEllipse(4, 4, 56, 56)
+        painter.setBrush(QColor(255, 255, 255))
+        painter.drawEllipse(20, 20, 24, 24)
+        painter.end()
         return QIcon(px)
 
     def _setup_tray(self):
@@ -523,6 +522,9 @@ class ControlPanel(QMainWindow):
                 self._show_window()
 
     def closeEvent(self, event):
+        if self._quitting:
+            event.accept()
+            return
         if self.tray_available and self.tray_icon.isVisible():
             self.hide()
             send_command("WINDOW:hidden")
@@ -931,8 +933,26 @@ class ControlPanel(QMainWindow):
         self._update_info_label()
 
     def _quit(self):
+        if self._quitting:
+            return
+        self._quitting = True
+
+        # Stop GUI-side polling before tearing down the X11/tray objects. In
+        # particular, do not leave a QSystemTrayIcon alive while Qt is
+        # shutting down; some X11/XWayland tray implementations can otherwise
+        # keep interpreter finalization stuck after the main window disappears.
+        if hasattr(self, "preview_timer"):
+            self.preview_timer.stop()
+        if hasattr(self, "consumer_timer"):
+            self.consumer_timer.stop()
+        if hasattr(self, "tray_icon"):
+            self.tray_icon.hide()
+
         send_command("QUIT")
-        QApplication.quit()
+        self.close()
+        app = QApplication.instance()
+        if app is not None:
+            app.quit()
 
 
 # ═════════════════════════════════════════════════════════════════════════

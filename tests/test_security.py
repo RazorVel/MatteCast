@@ -14,6 +14,7 @@ server = text("app/server.cpp")
 rvm = text("app/rvm_processor.cpp")
 cmake = text("app/CMakeLists.txt")
 control = text("app/control_panel.py")
+start = text("app/start.sh")
 container = text("Containerfile")
 remote = text("scripts/install-remote.sh")
 push = text("scripts/push-to-ghcr.sh")
@@ -64,6 +65,17 @@ assert 'len(cmd.encode("utf-8")) > 4096' in control
 assert "runtime directory must not be a symlink" in run
 assert "configuration directory must not be a symlink" in run
 assert "Refusing symlink runtime directory" in watcher
+assert "QSvgRenderer" not in control
+assert "self._quitting" in control
+assert "self.tray_icon.hide()" in control
+assert 'echo "$name did not stop after SIGTERM; forcing shutdown." >&2' in start
+assert "wait -n -p FIRST_PID" in start
+assert "MatteCast GUI did not exit after server shutdown; terminating it." in start
+assert "kill -KILL" in start
+assert 'MANAGED_LABEL="io.mattecast.managed"' in run
+assert 'container_is_managed' in run
+assert 'container_is_legacy_mattecast' in run
+assert '--label "$MANAGED_LABEL=true"' in run
 
 # Active application namespace is MatteCast. BluCast remains only in explicit
 # installer/uninstaller legacy migration paths.

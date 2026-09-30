@@ -61,6 +61,43 @@ else
     [ -n "$IMAGE_NAME" ] || fail "patched local image not found. Run ./install.sh first. MatteCast will not silently pull an upstream image."
 fi
 
+CONTAINER_NAME="mattecast-${UID}"
+MANAGED_LABEL="io.mattecast.managed"
+
+container_exists() {
+    "$CONTAINER_CMD" container inspect "$CONTAINER_NAME" >/dev/null 2>&1
+}
+
+container_running() {
+    [ "$("$CONTAINER_CMD" container inspect --format '{{.State.Running}}' "$CONTAINER_NAME" 2>/dev/null || true)" = "true" ]
+}
+
+container_is_managed() {
+    [ "$("$CONTAINER_CMD" container inspect --format '{{index .Config.Labels "io.mattecast.managed"}}' "$CONTAINER_NAME" 2>/dev/null || true)" = "true" ]
+}
+
+container_is_legacy_mattecast() {
+    local image
+    image="$("$CONTAINER_CMD" container inspect --format '{{.Config.Image}}' "$CONTAINER_NAME" 2>/dev/null || true)"
+    case "$image" in
+        mattecast:hardened-local|localhost/mattecast:hardened-local) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+if container_exists; then
+    if container_running; then
+        fail "MatteCast is already running in container $CONTAINER_NAME"
+    fi
+    if container_is_managed || container_is_legacy_mattecast; then
+        warn "removing stale MatteCast container: $CONTAINER_NAME"
+        "$CONTAINER_CMD" rm -f "$CONTAINER_NAME" >/dev/null || \
+            fail "could not remove stale MatteCast container: $CONTAINER_NAME"
+    else
+        fail "container name $CONTAINER_NAME is already in use by an unmanaged container; remove or rename it manually"
+    fi
+fi
+
 MODPROBE_BIN="$(command -v modprobe || true)"
 [ -n "$MODPROBE_BIN" ] || fail "modprobe not found"
 
@@ -134,13 +171,21 @@ if [ -x "$SCRIPT_DIR/scripts/vcam_watcher.sh" ]; then
 fi
 
 cleanup() {
-    [ -n "$WATCHER_PID" ] && kill "$WATCHER_PID" 2>/dev/null || true
+    if container_exists && container_is_managed; then
+        "$CONTAINER_CMD" rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+    fi
+    if [ -n "$WATCHER_PID" ]; then
+        kill "$WATCHER_PID" 2>/dev/null || true
+        wait "$WATCHER_PID" 2>/dev/null || true
+    fi
     rm -f "$SHARED_HOST_DIR/consumers" "$SHARED_HOST_DIR/preview.jpg" \
           "$SHARED_HOST_DIR/preview.jpg.tmp" "$SHARED_HOST_DIR/cmd.pipe" \
           "$SHARED_HOST_DIR/server.pid" "$SHARED_HOST_DIR/.xauth" 2>/dev/null || true
     rmdir "$SHARED_HOST_DIR" 2>/dev/null || true
 }
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 GPU_ARGS=()
 if [ "$CONTAINER_CMD" = "podman" ]; then
@@ -216,7 +261,8 @@ fi
 
 COMMON_ARGS=(
     --rm
-    --name "mattecast-${UID}"
+    --name "$CONTAINER_NAME"
+    --label "$MANAGED_LABEL=true"
     --network none
     --ipc private
     --cap-drop ALL
